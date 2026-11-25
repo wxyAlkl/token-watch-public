@@ -1,0 +1,38 @@
+# Dependencies and build products
+node_modules/
+dist/
+output/
+.playwright-cli/
+coverage/
+.superpowers/
+
+# Local credentials, runtime state and backups
+.env
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.log
+*.bak
+*.pem
+*.key
+data/*
+!data/stations.json
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local workspace notes and exports
+.project/
+outputs/
+AGENTS.md
+CLAUDE.md
+PROJECT.md
+*.jsonl

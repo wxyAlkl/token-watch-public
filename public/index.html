@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101d33">
+    <link rel="icon" type="image/svg+xml" href="/icons/token-watch.svg">
+    <title>Token Watch · 中转站监控台</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/web-workbench.css">
+  </head>
+  <body data-runtime="desktop">
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <img class="brand-mark" src="/icons/token-watch.svg" alt="" width="32" height="32">
+          <div><strong>Token Watch</strong><small>relay observatory</small></div>
+        </div>
+        <div class="sidebar-label">工作区</div>
+        <nav class="nav-list" aria-label="主导航">
+          <button class="nav-item active" type="button" data-nav="overview"><span class="nav-icon">▦</span>总览<span class="nav-pill is-live" id="liveBadge" aria-live="polite">LIVE</span></button>
+          <button class="nav-item" type="button" data-nav="official"><span class="nav-icon">◎</span>官方渠道</button>
+          <button class="nav-item" type="button" data-nav="stations"><span class="nav-icon">◉</span>中转站<span id="stationAlertBadge" class="station-alert-badge" role="img" aria-label="额度警告" hidden><i data-lucide="triangle-alert"></i></span></button>
+          <button class="nav-item" type="button" data-nav="calls"><span class="nav-icon">⌁</span>消耗日志</button>
+        </nav>
+        <div class="sidebar-label sidebar-label-spaced">运行设置</div>
+        <label class="select-label" for="refreshSelect">自动刷新</label>
+        <div class="select-wrap">
+          <select id="refreshSelect" aria-label="自动刷新周期">
+            <option value="5">每 5 分钟</option>
+            <option value="10">每 10 分钟</option>
+            <option value="60">每 1 小时</option>
+          </select>
+          <span>⌄</span>
+        </div>
+        <button class="runtime-alert-button" id="openAlertSettings" type="button" title="额度警告设置"><i data-lucide="bell-ring"></i><span>额度警告</span><span id="alertSettingState">已开启</span></button>
+        <div class="sidebar-foot">
+          <div class="sync-orbit"><span></span></div>
+          <div><small>本地服务</small><strong id="serviceStatus">正在连接</strong></div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div class="crumb"><span>工作区</span><b>/</b><strong id="pageBreadcrumb">监控总览</strong></div>
+          <div class="top-actions">
+            <div class="last-sync"><span class="status-dot"></span><span id="lastSyncText">等待首次同步</span><span id="syncProgress" class="sync-progress" role="status" aria-live="polite" hidden></span></div>
+            <button class="icon-button" type="button" id="refreshAllButton" title="立即刷新全部站点"><span>↻</span><em>刷新全部</em></button>
+          <button class="secondary-button" type="button" id="importCcSwitchButton" title="从 CC Switch 导入配置"><span>↥</span>从 CC Switch 导入</button><button class="primary-button" type="button" id="addStationButton"><span>＋</span>添加中转站</button>
+          </div>
+        </header>
+
+        <div class="degraded-banner" id="degradedBanner" role="status" hidden><span class="degraded-icon" aria-hidden="true">⚠</span><span id="degradedText"></span><button class="text-button" type="button" id="degradedAction">立即刷新</button></div>
+        <div class="attribution-alert" id="sourceAttributionAlert" role="status" aria-live="polite" hidden><div><strong>发现陌生中转来源</strong><p id="sourceAttributionAlertText"></p></div><button class="secondary-button" id="resolveUnknownSources" type="button">处理归属</button></div>
+
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">API RELAY / OBSERVATORY</p>
+            <h1 id="pageTitle">消耗监控总览</h1>
+            <p class="heading-copy" id="pageDescription">把每个中转站的额度、token 与调用状态放在同一个安静的工作面里。</p>
+          </div>
+          <div class="heading-signal"><span class="pulse"></span><div><small>实时监测</small><strong id="onlineSummary">— 个站点在线</strong></div></div>
+        </div>
+
+        <div class="page-view active" data-page="overview">
+        <section class="kpi-grid" aria-label="总览指标">
+          <article class="kpi-card kpi-balance">
+            <div class="kpi-top"><span class="kpi-label">中转站余额</span><i data-lucide="wallet" class="metric-icon"></i></div>
+            <div id="overviewBalances" class="overview-balances" aria-label="各中转站余额"></div>
+          </article>
+          <article class="kpi-card kpi-tokens">
+            <div class="kpi-top"><span class="kpi-label">累计 token 用量</span><span class="kpi-icon">#</span></div>
+            <strong class="kpi-value" id="totalTokens">–</strong>
+            <div class="kpi-meta token-kpi-breakdown"><span id="totalTokensCompact">—</span><span id="overviewTokenBreakdown">输入 — · 输出 — · 缓存 —</span></div>
+          </article>
+          <article class="kpi-card kpi-today">
+            <div class="kpi-top"><span class="kpi-label">当前额度已用</span><span class="kpi-icon">Σ</span></div>
+            <strong class="kpi-value" id="todaySpend">--</strong>
+            <div class="kpi-meta"><span class="neutral-mark">—</span><span>累计额度 - 当前余额</span></div>
+          </article>
+          <article class="kpi-card kpi-total">
+            <div class="kpi-top"><span class="kpi-label">历史额度消耗</span><span class="kpi-icon">Σ</span></div>
+            <strong class="kpi-value" id="totalSpend">--</strong>
+            <div class="kpi-meta"><span>按每次余额下降累计</span><span id="modelSummary">— 个模型可用</span></div>
+          </article>
+        </section>
+
+        <a class="text-button official-overview-link" href="#official">查看官方账号额度 →</a>
+        <div class="overview-chart-toolbar"><span id="overviewPeriod">最近 7 天</span><div class="segmented-control" role="group" aria-label="图表时间范围"><button type="button" data-overview-days="7" aria-pressed="true">7 天</button><button type="button" data-overview-days="30" aria-pressed="false">30 天</button></div></div>
+        <section class="overview-charts" aria-label="调用使用统计">
+          <article class="analytics-panel model-panel">
+            <div class="panel-heading"><h2>模型分布</h2><span id="overviewRequestCount" class="analytics-caption">0 次调用</span></div>
+            <div class="model-distribution"><div class="doughnut-wrap"><canvas id="modelChart" role="img" aria-label="按 Token 总量统计的模型分布"></canvas><div class="doughnut-center"><strong id="chartTokenTotal">0</strong><span>Tokens</span></div></div>
+              <div class="model-table-wrap"><table class="model-table"><thead><tr><th>模型</th><th>调用数</th><th>Token</th><th>实际费用</th><th>估算费用</th></tr></thead><tbody id="modelStatsBody"></tbody></table></div></div>
+          </article>
+          <article class="analytics-panel token-trend-panel">
+            <div class="panel-heading"><h2>Token 使用趋势</h2><span id="overviewChartError" class="analytics-caption" aria-live="polite"></span></div>
+            <div class="token-trend-wrap"><canvas id="tokenTrendChart" role="img" aria-label="每日输入、输出、缓存与缓存命中率"></canvas></div>
+          </article>
+        </section>
+        <section class="overview-health">
+          <article class="panel status-panel">
+            <div class="panel-heading"><div><span class="section-kicker">系统状态</span><h2>连接健康度</h2></div><span class="health-badge pending" id="healthBadge">● 等待连接</span></div>
+            <div class="health-score"><strong id="healthScore">--%</strong><span>模型接口，基于最近检测</span></div>
+            <div class="health-bar"><span id="healthBar"></span></div>
+            <dl class="status-list"><div><dt>活跃站点</dt><dd id="activeStations">— / —</dd></div><div><dt>可用模型</dt><dd id="availableModels">—</dd></div><div><dt>用量接口</dt><dd id="usageStatusSummary">— / — 正常</dd></div><div><dt>刷新周期</dt><dd id="refreshLabel">每 5 分钟</dd></div></dl>
+          </article>
+        </section>
+        </div>
+
+        <div class="page-view" data-page="official" hidden>
+        <section class="analytics-panel codex-account" aria-labelledby="codexAccountHeading">
+          <div class="panel-heading"><h2 id="codexAccountHeading">Codex 官方账号</h2><button type="button" class="text-button" id="refreshCodexAccount">刷新账号</button></div>
+          <p class="analytics-caption" id="codexAccountStatus" role="status">正在读取本机登录账号…</p>
+          <div class="codex-metrics" id="codexAccountMetrics"></div>
+          <details id="codexAccountHistory" hidden><summary>每日 Token 明细</summary><dl class="status-list" id="codexAccountDays"></dl></details>
+        </section>
+          <section aria-labelledby="officialDsTitle"><div class="section-heading"><h2 id="officialDsTitle">DeepSeek 官方 API</h2><button class="text-button" type="button" id="addDeepSeekAccount">添加账号</button></div><div id="officialStationGrid" class="station-grid" aria-label="DeepSeek 官方账号"></div></section>
+        </div>
+
+        <div class="page-view" data-page="stations" hidden>
+        <section class="section-block" id="stationsSection">
+          <div class="section-heading"><div><span class="section-kicker">站点资产</span><h2>中转站额度</h2></div><button class="text-button" type="button" id="addStationInline">＋ 添加站点</button></div>
+          <div class="history-export-toolbar"><button class="primary-button" id="exportAllStationsButton" type="button" title="下载所有中转的汇总、额度、Token 与校正记录 JSON 总包">导出全部渠道历史</button><button class="secondary-button" id="exportStationHistoryButton" type="button">自定义导出</button><button class="secondary-button" id="manageSourceMappings" type="button">来源归属管理</button><span>导出范围包含全部已建站点及其历史记录</span></div>
+          <div class="station-grid" id="stationGrid" aria-label="额度明细"></div>
+        </section>
+        </div>
+
+        <div class="page-view" data-page="calls" hidden>
+        <section class="section-block calls-section" id="callsSection">
+          <div class="history-toolbar"><div class="segmented-control history-tabs" role="group" aria-label="用量日志类型"><button type="button" data-history-tab="calls" aria-pressed="true">调用明细</button><button type="button" data-history-tab="token" aria-pressed="false">Token 消耗</button><button type="button" data-history-tab="quota" aria-pressed="false">额度消耗</button><button type="button" data-history-tab="correction" aria-pressed="false">历史校正</button></div><div id="historyFilters" class="history-filters" hidden><label class="log-filter"><span>中转站</span><select id="historyStationFilter"><option value="">所有中转站</option></select></label><label class="log-filter"><span>时间范围</span><select id="historyRangeFilter"><option value="all">全部历史</option><option value="24h">最近 24 小时</option><option value="7d">最近 7 天</option><option value="30d">最近 30 天</option></select></label><button class="secondary-button" id="refreshHistoryButton" type="button">刷新记录</button></div></div>
+          <div id="historyExportToolbar" class="history-export-toolbar" hidden><button class="secondary-button" id="exportHistoryButton" type="button">导出当前历史数据</button><span>导出全部匹配记录，不受分页限制</span></div>
+          <p id="historyStatus" class="history-status" role="status" aria-live="polite" hidden></p>
+          <section class="history-panel" data-history-panel="correction" hidden>
+            <div class="section-heading log-heading"><div><h2>历史校正记录</h2></div><div class="log-pagination" id="correctionHistoryPagination" hidden><span id="correctionHistoryPageLabel"></span><button class="secondary-button" id="correctionHistoryPrevious" type="button" aria-label="上一页">←</button><button class="secondary-button" id="correctionHistoryNext" type="button" aria-label="下一页">→</button></div></div>
+            <div class="history-summary" id="correctionHistorySummary"></div>
+            <p class="history-note">历史合计包含这些校正差额。额度消耗、Token 消耗页分别保留实测记录；校正不改变余额和调用分项。</p>
+            <div class="table-wrap history-table-wrap"><table class="history-table"><thead><tr><th>中转站</th><th>校正时间</th><th>金额：校正前 → 校正后</th><th>额度差额</th><th>Token：校正前 → 校正后</th><th>Token 差额</th></tr></thead><tbody id="correctionHistoryBody"></tbody></table></div>
+          </section>
+          <section class="history-panel" data-history-panel="token" hidden>
+            <div class="section-heading log-heading"><div><span class="section-kicker">TOKEN USAGE</span><h2>Token 消耗日志</h2></div><div class="log-pagination" id="tokenHistoryPagination" hidden><span id="tokenHistoryPageLabel"></span><button class="secondary-button" id="tokenHistoryPrevious" type="button" title="上一页" aria-label="上一页">←</button><button class="secondary-button" id="tokenHistoryNext" type="button" title="下一页" aria-label="下一页">→</button></div></div>
+            <div class="history-summary" id="tokenHistorySummary"></div>
+            <p class="history-note">来自调用日志。合计 = 普通输入 + 普通输出 + 缓存读取 + 缓存创建。</p>
+            <div class="table-wrap history-table-wrap"><table class="history-table token-history-table"><thead><tr><th>中转站</th><th>时间</th><th>模型</th><th>普通输入</th><th>普通输出</th><th>缓存读取</th><th>缓存创建</th><th>合计 Token</th></tr></thead><tbody id="tokenHistoryBody"></tbody></table></div>
+          </section>
+          <section class="history-panel" data-history-panel="quota" hidden>
+            <div class="section-heading log-heading"><div><span class="section-kicker">QUOTA USAGE</span><h2>额度消耗日志</h2></div><div class="log-pagination" id="quotaHistoryPagination" hidden><span id="quotaHistoryPageLabel"></span><button class="secondary-button" id="quotaHistoryPrevious" type="button" title="上一页" aria-label="上一页">←</button><button class="secondary-button" id="quotaHistoryNext" type="button" title="下一页" aria-label="下一页">→</button></div></div>
+            <div class="history-summary" id="quotaHistorySummary"></div>
+            <p class="history-note">记录两次成功刷新之间的余额下降。余额增加时更新基线；刷新间隔内同时充值与消费时，只能记录净下降额。时间按本机时区显示。</p>
+            <div class="table-wrap history-table-wrap"><table class="history-table quota-history-table"><thead><tr><th>中转站</th><th>发生时间</th><th>统计区间</th><th>刷新前余额</th><th>刷新后余额</th><th>消耗额度</th></tr></thead><tbody id="quotaHistoryBody"></tbody></table></div>
+          </section>
+          <div data-history-panel="calls">
+          <div class="log-pagination" id="logPagination" hidden><span id="logPageLabel"></span><button class="secondary-button" id="logPreviousPage" type="button" title="上一页" aria-label="上一页">←</button><button class="secondary-button" id="logNextPage" type="button" title="下一页" aria-label="下一页">→</button></div>
+          <div class="section-heading log-heading"><div><span class="section-kicker">REQUEST JOURNAL</span><h2>调用日志 <small>（按时间范围筛选）</small></h2></div><div class="log-actions"><button class="secondary-button cli-sync-button" type="button" id="syncCliButton" title="同步本机 CLI 会话用量"><span>⇄</span>同步 CLI 用量</button><button class="secondary-button export-button" type="button" id="exportCsvButton" title="导出当前筛选结果为 CSV"><span>⇩</span>CSV</button><button class="secondary-button export-button" type="button" id="exportJsonButton" title="导出当前筛选结果为 JSON"><span>⇩</span>JSON</button><button class="icon-button log-refresh" type="button" id="refreshLogsButton" title="刷新调用日志"><span>↻</span></button></div></div>
+          <div class="log-summary"><span class="log-chip usage-chip"><i></i><span>估算费用</span><strong id="logUsage">--</strong></span><span class="log-chip rpm-chip"><i></i><span>调用数</span><strong id="logRpm">0</strong></span><span class="log-chip tpm-chip"><i></i><span>Token 总量</span><strong id="logTpm">0</strong></span><span class="log-hint">数据来自本地代理与 CLI usage</span></div>
+          <div class="pricing-status-row"><span id="logPricingStatus" aria-live="polite"></span><button id="refreshPricingButton" class="text-button" type="button" title="更新 models.dev 价格">更新模型价格</button></div>
+          <div class="log-toolbar">
+            <label class="log-filter date-filter"><span>时间范围</span><select id="logDateFilter"><option value="all">全部</option><option value="24h">最近 24 小时</option><option value="today">今日</option><option value="7d">最近 7 天</option><option value="30d">最近 30 天</option></select></label>
+            <label class="log-filter"><span>模型名称</span><input id="logModelFilter" type="search" placeholder="筛选模型"></label>
+            <label class="log-filter"><span>来源中转</span><select id="logSourceFilter"><option value="">所有中转站</option></select></label>
+            <label class="log-filter"><span>来源应用</span><select id="logAppFilter"><option value="">所有应用</option><option value="Codex">Codex</option><option value="Claude Code">Claude Code</option><option value="DeepSeek Harness">DeepSeek Harness</option><option value="WorkBuddy">WorkBuddy</option><option value="本地代理">本地代理</option></select></label>
+            <label class="log-filter"><span>请求类型</span><select id="logTypeFilter"><option value="">所有类型</option><option value="stream">流式</option><option value="complete">非流式</option><option value="usage">CLI usage</option></select></label>
+            <button class="secondary-button log-search" type="button" id="logSearchButton">搜索</button>
+            <button class="text-button" type="button" id="logResetButton">重置</button>
+          </div>
+          <div class="table-wrap log-table-wrap"><table class="log-table"><thead><tr><th>来源中转</th><th>来源应用</th><th>时间</th><th>令牌</th><th>模型</th><th>流</th><th>普通输入 / 输出</th><th>缓存读取 / 创建</th><th>总 Tokens</th><th>缓存命中</th><th>思维</th><th>消耗</th><th>性能</th><th>状态码</th><th>详情</th></tr></thead><tbody id="callsBody"></tbody></table></div>
+          </div>
+        </section>
+        </div>
+        <footer class="footer-note"><span>本地监控台 · API Key 仅保存在本机服务</span><span id="footerVersion">DEMO 0.1</span></footer>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="stationModal" hidden>
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-heading"><div><span class="section-kicker">站点配置</span><h2 id="modalTitle">添加中转站</h2></div><button class="close-button" type="button" id="closeModal" title="关闭">×</button></div>
+        <form id="stationForm">
+          <input type="hidden" id="stationId">
+          <label>站点名称<input id="stationName" name="name" required placeholder="例如：示例中转站"></label>
+          <label>令牌名称 <span class="label-note">显示在调用日志中</span><input id="stationTokenName" name="tokenName" placeholder="例如：开发用令牌"></label>
+          <label>OpenAI 兼容地址<input id="stationBaseUrl" name="baseUrl" required placeholder="https://example.com/v1" inputmode="url"></label>
+          <label class="switch-label"><input id="stationGhost" type="checkbox"><span>幽灵中转：仅保留记录，不监控（可不填 URL）</span></label>
+          <label>额度单位<select id="stationBalanceUnit" name="balanceUnit"><option value="CNY">CNY / 人民币</option><option value="USD">USD / 美元</option></select></label>
+          <fieldset class="quota-fieldset"><legend>额度模式</legend>
+            <label>计费方式<select id="stationQuotaMode" name="quotaMode"><option value="prepaid">充值余额</option><option value="daily">每日额度</option><option value="weekly">每周额度</option></select></label>
+            <label id="quotaLimitField" hidden><span id="quotaLimitLabel">每日额度</span><input id="stationQuotaLimit" type="number" min="0.000001" step="any" inputmode="decimal"></label>
+            <label id="quotaThresholdField">低余额提醒阈值（可选）<input id="stationQuotaThreshold" type="number" min="0" step="any" inputmode="decimal" placeholder="不设置"></label>
+            <label>余额来源<select id="stationQuotaSource"><option value="account">账户余额</option></select></label>
+          </fieldset>
+          <label>API Key <span class="label-note">仅存本机</span><input id="stationApiKey" name="apiKey" type="password" placeholder="sk-..."></label>
+          <label>统计接口（可选）<span class="label-note">余额/用量查询地址</span><input id="stationStatsUrl" name="statsUrl" placeholder="https://example.com/api/usage" inputmode="url"></label>
+          <label>统计访问令牌（可选）<span class="label-note">与模型 API Key 分开</span><input id="stationStatsToken" name="statsToken" type="password" placeholder="留空则使用模型 API Key"></label>
+          <label>统计用户 ID（可选）<span class="label-note">New API 需要</span><input id="stationStatsUserId" name="statsUserId" placeholder="例如：123" inputmode="numeric"></label>
+          <section class="usage-code-editor web-only" aria-labelledby="usageCodeTitle">
+            <div class="usage-code-heading"><div><strong id="usageCodeTitle">用量查询代码</strong><span class="label-note">CC Switch 格式，可自定义请求和余额解析</span></div><label class="switch-label"><input id="stationUsageScriptEnabled" type="checkbox"><span>启用自定义</span></label></div>
+            <div class="usage-code-toolbar"><span id="usageCodeStatus">正在读取默认配置…</span><button class="text-button" type="button" id="resetUsageCodeButton">恢复默认</button></div>
+            <textarea id="stationUsageScript" class="usage-code" spellcheck="false" placeholder="({ request: { url: ... }, extractor: function(response) { ... } })"></textarea>
+            <p class="label-note"><code>{{baseUrl}}</code>：统计接口域名（不含末尾 /），未填写时使用模型域名；<code>{{apiBaseUrl}}</code>：模型完整地址；<code>{{statsUrl}}</code>：统计接口原始地址。自定义代码通过这些变量使用上方配置。</p>
+            <div class="usage-code-actions"><button class="secondary-button" type="button" id="testUsageButton"><span>⌁</span>仅测试用量查询</button><span class="label-note">保存后刷新余额也会使用这段代码</span></div>
+            <div class="test-result" id="usageTestResult" aria-live="polite"></div>
+          </section>
+          <fieldset class="pricing-fieldset"><legend>本地代理计价（每 1M token，估算）</legend><div class="pricing-grid"><label>普通输入<input id="stationPriceInput" type="number" min="0" step="0.000001"></label><label>普通输出<input id="stationPriceOutput" type="number" min="0" step="0.000001"></label><label>缓存读取<input id="stationPriceCacheRead" type="number" min="0" step="0.000001"></label><label>缓存创建<input id="stationPriceCacheWrite" type="number" min="0" step="0.000001"></label></div></fieldset>
+          <p class="form-hint">New API 站点通常请求 <code>/api/user/self</code>，同时需要访问令牌和用户 ID。模型 API Key 仍只用于调用模型。</p>
+          <div class="test-result" id="stationTestResult" aria-live="polite"></div>
+          <div class="modal-actions"><button class="secondary-button" type="button" id="cancelModal">取消</button><button class="secondary-button" type="button" id="testStationButton"><span>⌁</span>测试连接</button><button class="primary-button" type="submit"><span>✓</span>保存站点</button></div>
+        </form>
+      </section>
+    </div>
+    <div class="modal-backdrop" id="ccSwitchModal" hidden>
+      <section class="modal import-modal" role="dialog" aria-modal="true" aria-labelledby="ccSwitchModalTitle">
+        <div class="modal-heading"><div><span class="section-kicker">配置导入</span><h2 id="ccSwitchModalTitle">从 CC Switch 添加</h2></div><button class="close-button" type="button" id="closeCcSwitchModal" title="关闭">×</button></div>
+        <p class="import-source" id="ccSwitchImportSource">正在读取 CC Switch 配置…</p>
+        <div class="import-toolbar"><span id="ccSwitchCandidateCount">--</span><button class="text-button" type="button" id="selectAllCcSwitch">全选</button><button class="text-button" type="button" id="clearAllCcSwitch">清空</button></div>
+        <div class="import-candidates" id="ccSwitchCandidates"></div>
+        <div class="modal-actions"><button class="secondary-button" type="button" id="cancelCcSwitchImport">取消</button><button class="primary-button" type="button" id="confirmCcSwitchImport"><span>✓</span>导入选中</button></div>
+      </section>
+    </div>
+    <div class="modal-backdrop" id="logDetailModal" hidden>
+      <section class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="logDetailTitle">
+        <div class="modal-heading"><div><span class="section-kicker">日志详情</span><h2 id="logDetailTitle">调用记录</h2></div><button class="close-button" type="button" id="closeLogDetail" title="关闭">×</button></div>
+        <dl class="detail-list" id="logDetailList"></dl>
+        <div class="modal-actions"><button class="secondary-button" type="button" id="cancelLogDetail">关闭</button></div>
+      </section>
+    </div>
+    <div class="modal-backdrop" id="alertSettingsModal" hidden>
+      <section class="modal alert-settings-modal" role="dialog" aria-modal="true" aria-labelledby="alertSettingsTitle">
+        <div class="modal-heading"><h2 id="alertSettingsTitle">额度警告</h2><button type="button" id="closeAlertSettings" class="close-button" title="关闭">×</button></div>
+        <form id="alertSettingsForm">
+          <label class="alert-toggle"><input id="balanceAlertsEnabled" type="checkbox" role="switch"><span>启用额度警告</span></label>
+          <label>美元余额低于（$）<input id="alertUsd" type="number" min="0" step="any" placeholder="不设置金额阈值"></label>
+          <label>人民币余额低于（¥）<input id="alertCny" type="number" min="0" step="any" placeholder="不设置金额阈值"></label>
+          <label>剩余额度低于（%）<span class="label-note">仅日／周额度</span><input id="alertPercent" type="number" min="0" max="100" step="any" placeholder="不设置百分比阈值"></label>
+          <div id="alertSettingsError" class="test-result error" aria-live="polite"></div>
+          <div class="modal-actions"><button type="button" class="secondary-button" id="cancelAlertSettings">取消</button><button type="submit" class="primary-button" id="saveAlertSettings"><i data-lucide="check"></i>保存设置</button></div>
+        </form>
+      </section>
+    </div>
+    <div class="modal-backdrop" id="calibrationModal" hidden>
+      <section class="modal calibration-modal" role="dialog" aria-modal="true" aria-labelledby="calibrationTitle">
+        <div class="modal-heading"><div><h2 id="calibrationTitle">历史消耗校准</h2><p id="calibrationStation"></p></div><button class="close-button" type="button" id="closeCalibration" title="关闭">×</button></div>
+        <form id="calibrationForm">
+          <label>累计消耗金额 <select id="calibrationUnit" aria-label="校正额度币种"></select><input id="calibrationAmount" type="number" min="0" max="1000000000000" step="0.000001" required></label>
+          <label>累计 Token 数<input id="calibrationTokens" type="number" min="0" max="9007199254740991" step="1" required></label>
+          <dl class="calibration-preview"><div><dt>当前累计</dt><dd id="calibrationCurrent"></dd></div><div><dt>本次校正差额</dt><dd id="calibrationDelta"></dd></div></dl>
+          <p class="form-hint">校正后总量 = 实测累计 + 校正差额。按当前时间保存独立记录，后续刷新和调用继续累计，原始 Token 分项保持不变。</p>
+          <div id="calibrationError" class="test-result error" aria-live="polite"></div>
+          <div class="modal-actions"><button class="secondary-button" type="button" id="cancelCalibration">取消</button><button class="primary-button" type="submit" id="saveCalibration">确认校准</button></div>
+        </form>
+      </section>
+    </div>
+    <div class="modal-backdrop" id="deleteStationModal" hidden>
+      <section class="modal danger-modal" role="dialog" aria-modal="true" aria-labelledby="deleteStationTitle" aria-describedby="deleteStationImpact">
+        <div class="modal-heading"><div><span class="section-kicker">危险操作</span><h2 id="deleteStationTitle">删除中转站</h2></div><button class="close-button" type="button" id="closeDeleteStation" title="关闭">×</button></div>
+        <p class="danger-copy" id="deleteStationCopy"></p>
+        <p class="form-hint danger-hint" id="deleteStationImpact"></p>
+        <div class="modal-actions"><button class="secondary-button" type="button" id="pauseInsteadOfDelete">改为暂停监控</button><button class="secondary-button" type="button" id="cancelDeleteStation">取消</button><button class="danger-button" type="button" id="confirmDeleteStation">永久删除</button></div>
+      </section>
+    </div>
+    <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+    <script src="/vendor/chart.js"></script>
+    <script src="/vendor/lucide.js"></script>
+    <script src="/monitor-channels.js"></script>
+    <script src="/quota-policy.js"></script>
+    <script src="/balance-alerts.js"></script>
+    <script src="/dashboard-format.js"></script>
+    <script src="/overview-charts.js"></script>
+    <div class="modal-backdrop" id="historyExportModal" hidden>
+      <section class="modal history-export-modal" role="dialog" aria-modal="true" aria-labelledby="historyExportTitle">
+        <div class="modal-heading"><h2 id="historyExportTitle">导出历史消耗</h2><button class="close-button" id="closeHistoryExport" type="button" aria-label="关闭导出">×</button></div>
+        <form id="historyExportForm">
+          <label>中转站<select id="exportHistoryStation"><option value="">所有中转站</option></select></label>
+          <label>导出内容<select id="exportHistoryKind"><option value="summary">按站汇总（实测 + 校正 + 合计）</option><option value="quota">额度消耗明细</option><option value="tokens">Token 消耗明细</option><option value="corrections">历史校正记录</option></select></label>
+          <label>时间范围<select id="exportHistoryRange"><option value="all">全部历史</option><option value="24h">最近 24 小时</option><option value="7d">最近 7 天</option><option value="30d">最近 30 天</option></select></label>
+          <label>文件格式<select id="exportHistoryFormat"><option value="csv">CSV（Excel / WPS）</option><option value="json">JSON（含字段与统计说明）</option></select></label>
+          <p class="form-hint">按站汇总分列展示实测、校正与合计，USD / CNY 不混算。额度明细记录余额净下降；Token 分项不包含历史校正。包含暂停站点，未归属 CLI 用量单列。</p>
+          <p id="historyExportStatus" role="status" aria-live="polite"></p>
+          <div class="modal-actions"><button class="secondary-button" id="cancelHistoryExport" type="button">取消</button><button class="primary-button" id="downloadHistoryExport" type="submit">下载文件</button></div>
+        </form>
+      </section>
+    </div>
+    <div class="modal-backdrop" id="sourceAttributionModal" hidden>
+      <section class="modal source-attribution-modal" role="dialog" aria-modal="true" aria-labelledby="sourceAttributionTitle">
+        <div class="modal-heading"><h2 id="sourceAttributionTitle">陌生中转归属</h2><button class="close-button" id="closeSourceAttribution" type="button" aria-label="关闭归属窗口">×</button></div>
+        <p class="form-hint" id="sourceAttributionSummary"></p>
+        <form id="sourceAttributionForm">
+          <label>日志中的来源名称<select id="attributionSource" required></select></label>
+          <p class="attribution-detail" id="attributionSourceDetail"></p>
+          <label>处理方式<select id="attributionAction"><option value="map">映射到已有中转</option><option value="create">添加为新的中转</option></select></label>
+          <label id="attributionTargetField">归属中转<select id="attributionTarget" required></select></label>
+          <div id="attributionCreateFields" hidden>
+            <label>新中转名称<input id="attributionName" maxlength="200"></label>
+            <label>OpenAI 兼容 URL<input id="attributionUrl" type="url" placeholder="https://example.com/v1"></label>
+            <label class="switch-label"><input id="attributionGhost" type="checkbox"><span>找不到 URL，设为幽灵中转（只有记录，不监控）</span></label>
+          </div>
+          <p class="form-hint">将该来源的全部历史调用归入所选中转，后续同名来源自动沿用。原始来源会保留；全局 Token 不重复增加。关闭窗口不会解除未完成提醒。</p>
+          <p id="sourceAttributionStatus" role="status" aria-live="polite"></p>
+          <div class="modal-actions"><button class="secondary-button" id="cancelSourceAttribution" type="button">稍后处理</button><button class="primary-button" id="saveSourceAttribution" type="submit">保存归属</button></div>
+        </form>
+      </section>
+    </div>
+    <script src="/history-export-format.js"></script>
+    <script src="/web-workbench.js?v=20261125b"></script>
+    <script src="/app.js?v=20261125b"></script>
+  </body>
+</html>

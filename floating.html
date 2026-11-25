@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Token Watch Floating</title>
+  <link rel="stylesheet" href="floating.css">
+</head>
+<body data-view="ball" data-island-mode="tucked">
+  <div id="ballView" class="ball-view">
+    <button id="tuckHandle" class="tuck-handle" type="button" tabindex="-1" aria-label="展开悬浮球" title="展开悬浮球"></button>
+    <div id="ball" class="ball state-offline" role="button" tabindex="0" aria-label="Token Watch 悬浮球">
+      <svg class="ball-ring" viewBox="0 0 96 96" aria-hidden="true">
+        <circle class="ring-track" cx="48" cy="48" r="42"></circle>
+        <circle id="ringProgress" class="ring-progress" cx="48" cy="48" r="42"></circle>
+      </svg>
+      <div class="ball-core">
+        <small id="ballAccountName">Codex</small>
+        <strong id="ballValue">--</strong>
+        <span id="ballLabel">连接中</span>
+      </div>
+      <span id="ballBadge" class="ball-badge" hidden>0</span>
+    </div>
+  </div>
+
+  <section id="islandView" class="island-view" hidden>
+    <button id="islandTuckHandle" class="island-tuck-handle" type="button" tabindex="-1" aria-label="展开灵动岛" title="展开灵动岛"></button>
+    <div id="island" class="island" role="region" tabindex="0" aria-label="Token Watch 灵动岛，按回车展开或收起详情">
+      <div class="island-compact" id="islandCompact">
+        <span class="island-status-dot" id="islandDot"></span>
+        <strong class="island-brand">Token Watch</strong>
+        <div class="island-preview" id="islandPreview">正在连接…</div>
+        <span class="island-more" id="islandMore"></span>
+      </div>
+      <div class="island-detail" id="islandDetail">
+        <header class="island-head">
+          <div><strong>Token Watch</strong><span id="islandService">正在连接本地服务…</span></div>
+          <div class="island-actions">
+            <button type="button" id="islandRefresh" title="立即刷新" aria-label="立即刷新">↻</button>
+            <button type="button" id="islandMenu" title="更多设置" aria-label="更多设置">⋯</button>
+            <button type="button" id="islandClose" title="收起" aria-label="收起">×</button>
+          </div>
+        </header>
+        <div class="island-summary"><span id="islandOnline">-- 在线</span><span id="islandAlerts">-- 告警</span><span id="islandBalance">余额 --</span></div>
+        <div class="island-section"><span id="islandChannelTitle">监控渠道</span><button type="button" class="channel-switch" id="islandChannelSwitch">切换模式</button><span id="islandStationCount"></span></div>
+        <ul class="island-stations" id="islandStations"></ul>
+        <footer class="island-footer"><button id="islandOpen" type="button">打开工作台</button><span id="islandHint"></span></footer>
+      </div>
+    </div>
+  </section>
+
+  <section id="panelView" class="panel-view" hidden>
+    <header class="panel-head">
+      <div class="panel-brand">
+        <span class="panel-dot" id="panelDot"></span>
+        <div>
+          <strong>Token Watch</strong>
+          <span id="panelService">正在连接本地服务…</span>
+        </div>
+      </div>
+      <div class="panel-head-actions">
+        <button class="ghost-button" id="panelMenu" type="button" title="更多设置" aria-label="更多设置">⋯</button>
+        <button class="ghost-button" id="panelRefresh" type="button" title="立即刷新">↻</button>
+        <button class="ghost-button" id="panelClose" type="button" title="收起">×</button>
+      </div>
+    </header>
+
+    <div class="panel-status" id="panelStatusGrid">
+      <div><span>在线</span><strong id="statOnline">--</strong></div>
+      <div><span>告警</span><strong id="statAlerts">--</strong></div>
+      <div><span>最后同步</span><strong id="statSync">--</strong></div>
+    </div>
+
+    <div class="panel-balance">
+      <span>余额合计</span>
+      <strong id="statBalance">--</strong>
+    </div>
+
+    <div class="panel-section-title">
+      <span id="panelChannelTitle">监控渠道</span><button type="button" class="channel-switch" id="panelChannelSwitch">切换模式</button>
+      <span id="panelStationCount">--</span>
+    </div>
+    <ul class="station-list" id="stationList"></ul>
+
+    <div class="panel-foot">
+      <button class="primary-button" id="panelOpen" type="button">打开工作台</button>
+      <button class="secondary-button" id="panelRefreshAll" type="button">刷新全部</button>
+      <button class="secondary-button" id="panelHide" type="button" title="隐藏到系统托盘，保持监控">隐藏</button>
+    </div>
+    <p class="panel-hint" id="panelHint">左键拖拽移动 · 右键菜单 · 单击展开/收起</p>
+  </section>
+
+  <script src="floating-renderer.js"></script>
+</body>
+</html>
